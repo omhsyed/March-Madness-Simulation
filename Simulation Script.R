@@ -1,3 +1,5 @@
+library(rvest)
+
 
 Px <- function(x, y, r) 
 {
@@ -212,6 +214,10 @@ print(all_results[best_sim_index, ])
 
 # TEST CHANGE TO SEE IF COMMIT WORKS FROM RSTUDIO
 
+library(rvest)
+
+url = "https://basketball.realgm.com/ncaa/team-stats/2026/Advanced_Stats/Team_Totals/0"
+web_data <- read_html(url)
 
 
 
