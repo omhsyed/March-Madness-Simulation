@@ -212,15 +212,19 @@ print(best_sim_index)
 print(all_results[best_sim_index, ])
 
 
-# TEST CHANGE TO SEE IF COMMIT WORKS FROM RSTUDIO
+
+
+
+# web scraping stats
 
 library(rvest)
 
 url = "https://www.espn.com/mens-college-basketball/stats/team"
 
-session <- read_html(url)
+session <- read_html_live(url)
 
-print(session)
+all_tables <- html_table(session)
 
+final_df <- cbind(all_tables[[1]], all_tables[[2]])
 
-
+print(final_df)
