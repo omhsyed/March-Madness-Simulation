@@ -216,8 +216,11 @@ print(all_results[best_sim_index, ])
 
 library(rvest)
 
-url = "https://basketball.realgm.com/ncaa/team-stats/2026/Advanced_Stats/Team_Totals/0"
-web_data <- read_html(url)
+url = "https://www.espn.com/mens-college-basketball/stats/team"
+
+session <- read_html(url)
+
+print(session)
 
 
 
