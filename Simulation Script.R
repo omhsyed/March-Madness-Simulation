@@ -219,12 +219,12 @@ print(all_results[best_sim_index, ])
 
 library(rvest)
 
-url = "https://www.espn.com/mens-college-basketball/stats/team"
+url = "https://www.espn.com/mens-college-basketball/stats/team/_/view/differential"
 
 session <- read_html_live(url)
 
 all_tables <- html_table(session)
 
-final_df <- cbind(all_tables[[1]], all_tables[[2]])
+df <- cbind(all_tables[[1]], all_tables[[2]])
 
-print(final_df)
+print(df[51,])
