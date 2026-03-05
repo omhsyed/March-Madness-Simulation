@@ -214,17 +214,53 @@ print(all_results[best_sim_index, ])
 
 
 
+# WEB SCRAPING
 
-# web scraping stats
 
+# ESPN site
+
+#library(rvest)
+
+#url = "https://www.espn.com/mens-college-basketball/stats/team/_/view/differential"
+
+#session <- read_html_live(url)
+
+#all_tables <- html_table(session)
+
+#df <- cbind(all_tables[[1]], all_tables[[2]])
+
+#print(df[51,])
+
+
+
+
+# NCAA site
 library(rvest)
+library(glue)
+library(dplyr)
 
-url = "https://www.espn.com/mens-college-basketball/stats/team/_/view/differential"
+EFGP_1 = "https://www.ncaa.com/stats/basketball-men/d1/current/team/1288"
 
-session <- read_html_live(url)
+session_1 <- read_html_live(EFGP_1)
 
-all_tables <- html_table(session)
+EFGP_df <- html_table(session_1)
 
-df <- cbind(all_tables[[1]], all_tables[[2]])
+EFGP_df <- EFGP_df[[1]][-1,] #getting rid of first row (a duplicate of the header names)
 
-print(df[51,])
+
+for (n in 2:8)
+{
+  
+  EFGP <- glue("https://www.ncaa.com/stats/basketball-men/d1/current/team/1288/p{n}")
+  
+  session <- read_html_live(EFGP)
+  
+  new_df <- html_table(session)
+  new_df <- new_df[[1]][-1,]
+  
+  EFGP_df <- bind_rows(EFGP_df, new_df)
+  
+}
+
+
+print(EFGP_df, n = 400)
