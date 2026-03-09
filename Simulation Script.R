@@ -7,6 +7,19 @@ Px <- function(x, y, r)
 }
 
 
+k = 0.1
+w = c(0.4, 0.25, 0.2, 0.15)
+
+Px_new <- function(ox, dx, oy, dy) 
+{
+  i = 1:4
+  return((1 + exp(-k * (sum(w[i]*((ox[i] - dy[i]) - (oy[i] - dx[i]))))))^(-1))
+}
+
+
+Px_new(c(55, 13, 39, 32), c(47, 11, 26, 19), c(57, 13, 35, 28), c(52, 15, 26, 27))
+
+
 
 seed <- c(
   # Region 1 (East)
@@ -182,7 +195,7 @@ simulate_tournament <- function()
 
 
 
-sims <- 10000
+sims <- 1000
 
 
 
@@ -217,50 +230,52 @@ print(all_results[best_sim_index, ])
 # WEB SCRAPING
 
 
-# ESPN site
+# previous bracket pages on NCAA
 
-#library(rvest)
-
-#url = "https://www.espn.com/mens-college-basketball/stats/team/_/view/differential"
-
-#session <- read_html_live(url)
-
-#all_tables <- html_table(session)
-
-#df <- cbind(all_tables[[1]], all_tables[[2]])
-
-#print(df[51,])
-
-
-
-
-# NCAA site
 library(rvest)
-library(glue)
-library(dplyr)
 
-EFGP_1 = "https://www.ncaa.com/stats/basketball-men/d1/current/team/1288"
+bracket_url = "https://www.ncaa.com/brackets/basketball-men/d1/2024"
 
-session_1 <- read_html_live(EFGP_1)
+sesh = read_html_live(bracket_url)
 
-EFGP_df <- html_table(session_1)
+team_tags = html_elements(sesh, "span.name")
 
-EFGP_df <- EFGP_df[[1]][-1,] #getting rid of first row (a duplicate of the header names)
+team_names = html_text(team_tags)
 
-
-for (n in 2:8)
-{
-  
-  EFGP <- glue("https://www.ncaa.com/stats/basketball-men/d1/current/team/1288/p{n}")
-  
-  session <- read_html_live(EFGP)
-  
-  new_df <- html_table(session)
-  new_df <- new_df[[1]][-1,]
-  
-  EFGP_df <- bind_rows(EFGP_df, new_df)
-  
-}
+print(team_names)
 
 
-print(EFGP_df, n = 400)
+
+# Live NCAA 2026 bracket page (currently empty)
+
+library(rvest)
+
+bracket_url = "https://www.ncaa.com/march-madness-live/bracket"
+
+sesh = read_html_live(bracket_url)
+
+seed_tags = html_elements(sesh, "span.overline color_lvl_-5")
+team_tags = html_elements(sesh, "body body_2 color_lvl_-5")
+
+seed_nums = html_text(seed_tags)
+team_names = html_text(team_tags)
+
+print(seed_nums)
+print(team_names)
+
+
+# kenpom alternative (barttorvik) stats page
+
+library(rvest)
+
+url = "https://barttorvik.com/#"
+
+s = read_html_live(url)
+
+df = html_table(s)[[1]]
+
+colnames(df) <- df[1,]
+
+df <- df[-1,]
+
+print(df)
