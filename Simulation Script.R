@@ -6,12 +6,12 @@ library(tidyverse)
 
 # previous bracket pages on NCAA
 
-#library(rvest)
 #bracket_url = "https://www.ncaa.com/brackets/basketball-men/d1/2024"
 #sesh = read_html_live(bracket_url)
 #team_tags = html_elements(sesh, "span.name")
 #team_names = html_text(team_tags)
 
+#print(team_names)
 
 
 # Live NCAA 2026 bracket page (currently empty)
@@ -36,18 +36,20 @@ url = "https://barttorvik.com/#"
 
 s = read_html_live(url)
 
-df = html_table(s)[[1]]
+stats_df = html_table(s)[[1]]
 
-colnames(df) <- df[1,]
+colnames(stats_df) <- stats_df[1,]
 
-df <- df[-1,]
+stats_df <- stats_df[-1,]
+stats_df <- stats_df[-26,]
+stats_df <- stats_df[-51,]
 
-df[, 6:24] <- lapply(df[, 6:24], as.numeric)
+stats_df[, 6:24] <- lapply(stats_df[, 6:24], as.numeric)
 
-df$Team <- as.character(df$Team)
-df$Team <- gsub("\u00A0", " ", df$Team) # replacing weird space
-df$Team <- trimws(sub("\\s*vs\\..*", "", df$Team)) # getting rid of "vs..."
-df$Team <- trimws(sub("\\s*\\(.*", "", df$Team)) # getting rid of (... 
+stats_df$Team <- as.character(stats_df$Team)
+stats_df$Team <- gsub("\u00A0", " ", stats_df$Team) # replacing weird space
+stats_df$Team <- trimws(sub("\\s*vs\\..*", "", stats_df$Team)) # getting rid of "vs..."
+stats_df$Team <- trimws(sub("\\s*\\(.*", "", stats_df$Team)) # getting rid of (... 
 
 
 
@@ -57,27 +59,33 @@ df$Team <- trimws(sub("\\s*\\(.*", "", df$Team)) # getting rid of (...
 
 # test values for seed and teams until bracket is finalized
 
-rand64 <- sample(1:64, 64)
-
 seeds <- numeric(0)
 teams <- character(0)
 
-for (i in 1:length(rand64)) 
-{
-  seeds <- c(seeds, as.numeric(df[df$Rk == rand64[i], 1][[1]]))
-}
+seeds <- c(seeds, as.numeric(stats_df[1:64, 1][[1]]))
+teams <- c(teams, stats_df[1:64, 2][[1]])
 
-for (i in 1:length(rand64)) 
-{
-  teams <- c(teams, df[df$Rk == rand64[i], 2][[1]])
-}
+seeds <- ceiling(seeds/4)
 
-team_info = tibble(Name = teams, Seed = seeds)
-#print(team_info)
-team_vect <- team_info[,1][[1]]
-#print(team_vect)
+teams_df = tibble(Name = teams, Seed = seeds)
+#print(teams_df)
 
 
+# Gemini code to establish correct order (1v16, 2v15, etc.)
+
+library(dplyr)
+
+# Define your desired seed matchup order
+seed_matchups <- c(1, 16, 2, 15, 3, 14, 4, 13, 5, 12, 6, 11, 7, 10, 8, 9)
+
+teams_df_ordered <- teams_df %>%
+  group_by(Seed) %>%
+  mutate(region = row_number()) %>% # Assigns 1-4 to each repeating seed
+  ungroup() %>%
+  arrange(region, factor(Seed, levels = seed_matchups)) %>%
+  select(-region) # Optional: drop the region column if you no longer need it
+
+#print(teams_df_ordered, n = 64)
 
 
 
@@ -87,6 +95,7 @@ team_vect <- team_info[,1][[1]]
 
 k = 0.1
 w = c(0.5, 0.2, 0.15, 0.1, 0.05)
+#w = c(1, 0, 0, 0, 0)
 
 Px <- function(ox, dx, oy, dy) 
 {
@@ -95,30 +104,25 @@ Px <- function(ox, dx, oy, dy)
 }
 
 
-Px(c(-5, 55, 13, 39, 32), c(0, 47, 11, 26, 19), c(-7, 57, 13, 35, 28), c(0, 52, 15, 26, 27))
-
-
-
-
 
 simulate_game <- function(teamX, teamY)
 {
 
-  x_seed = team_info[team_info$Name == teamX, 2][[1]]
+  x_seed = teams_df[teams_df$Name == teamX, 2][[1]]
   x_off_stats = c(-1*x_seed)
   x_def_stats = c(0)
   
-  y_seed = team_info[team_info$Name == teamY, 2][[1]]
+  y_seed = teams_df[teams_df$Name == teamY, 2][[1]]
   y_off_stats = c(-1*y_seed)
   y_def_stats = c(0)
     
   for (s in seq(9, 15, 2))
   {
-    x_off_stats = c(x_off_stats, df[df$Team == teamX, s][[1]])
-    x_def_stats = c(x_def_stats, df[df$Team == teamX, s + 1][[1]])
+    x_off_stats = c(x_off_stats, stats_df[stats_df$Team == teamX, s][[1]])
+    x_def_stats = c(x_def_stats, stats_df[stats_df$Team == teamX, s + 1][[1]])
     
-    y_off_stats = c(y_off_stats, df[df$Team == teamY, s][[1]])
-    y_def_stats = c(y_def_stats, df[df$Team == teamY, s + 1][[1]])
+    y_off_stats = c(y_off_stats, stats_df[stats_df$Team == teamY, s][[1]])
+    y_def_stats = c(y_def_stats, stats_df[stats_df$Team == teamY, s + 1][[1]])
   }
   
   prob = Px(x_off_stats, x_def_stats, y_off_stats, y_def_stats)
@@ -159,7 +163,7 @@ simulate_round <- function(v)
 simulate_tournament <- function()
 {
   
-  round_results <- team_vect
+  round_results <- teams
   full_bracket <- tibble(round_results)
 
   
@@ -184,46 +188,50 @@ simulate_tournament()
 
 
 
-sims <- 100
+sims <- 1000
 
 all_results <- list()
 
-#champ_count = tibble(Team = 1:64, Count = 0)
+champ_count = tibble(Team = teams_df$Name, Count = 0)
 
-win_count = tibble(Team = team_info$Name, Count = 0)
+win_count = tibble(Team = teams_df$Name, Count = 0)
 
 for (s in 1:sims) 
 {
   all_results[[s]] <- simulate_tournament()
   
-  #winner = as.numeric(all_results[[s]][1,7])
+  winner = all_results[[s]][1,7]
   #print(winner)
-  #champ_count[champ_count$Team == winner, 2] = champ_count[champ_count$Team == winner, 2] + 1
+  champ_count[champ_count$Team == winner, 2] = champ_count[champ_count$Team == winner, 2] + 1
   
   
-  for (r in 1:32)
-  {
-    for (c in 2:7) 
-    {
-      if (!is.na(all_results[[s]][r,c]))
-      {
-        win_count[win_count$Team == all_results[[s]][r,c], 2] = win_count[win_count$Team == all_results[[s]][r,c], 2] + 1
-      }
-    }
-  }
+  #for (r in 1:32)
+  #{
+    #for (c in 2:7) 
+    #{
+      #if (!is.na(all_results[[s]][r,c]))
+      #{
+       # win_count[win_count$Team == all_results[[s]][r,c], 2] = win_count[win_count$Team == all_results[[s]][r,c], 2] + 1
+     # }
+   # }
+ # }
   
   
 }
 
-#champ_count[,2] = champ_count[,2]/sims
+champ_count[,2] = champ_count[,2]/sims
+
+champ_count <- arrange(champ_count, Count)
+
+print(champ_count, n = 100)
 
 #win_count[,2] = win_count[,2]/sims
 
-win_count <- arrange(win_count, Count)
+#win_count <- arrange(win_count, Count)
 
-print(win_count, n = 100)
+#print(win_count, n = 100)
 
-barplot(height = win_count$Count)
+barplot(height = champ_count$Count)
 
 
 
