@@ -1,30 +1,31 @@
 library(tidyverse)
-
+library(rvest)
 
 # WEB SCRAPING
 
 
-# previous bracket pages on NCAA
-
-#bracket_url = "https://www.ncaa.com/brackets/basketball-men/d1/2024"
-#sesh = read_html_live(bracket_url)
-#team_tags = html_elements(sesh, "span.name")
-#team_names = html_text(team_tags)
-
-#print(team_names)
-
-
-# Live NCAA 2026 bracket page (currently empty)
+# Live NCAA 2026 bracket page
 
 bracket_url = "https://www.ncaa.com/march-madness-live/bracket"
 
 sesh = read_html_live(bracket_url)
 
-seed_tags = html_elements(sesh, "span.overline color_lvl_-5")
-team_tags = html_elements(sesh, "body body_2 color_lvl_-5")
+seed_tags = html_elements(sesh, "span.overline.color_lvl_-5")
+team_tags = html_elements(sesh, "p.body.body_2.color_lvl_-5")
 
 seeds = html_text(seed_tags)
 teams = html_text(team_tags)
+
+seeds <- as.numeric(seeds[seeds != ""])
+teams <- teams[teams != ""] # skipping empty entries
+
+scaled_seeds <- as.numeric(scale(seeds))
+
+teams_df_unscaled <- tibble(Name = teams, Seed = seeds)
+
+teams_df <- tibble(Name = teams, Seed = scaled_seeds)
+
+
 
 
 
@@ -49,7 +50,7 @@ stats_df$Team <- trimws(sub("\\s*\\(.*", "", stats_df$Team)) # getting rid of (.
 
 #print(stats_df)
 
-stats_df[, 6:24] <- scale(stats_df[, 6:24]) # standardizing (with z-score) all stats so that they are on the same scale
+stats_df[1:64, 6:24] <- scale(stats_df[1:64, 6:24]) # standardizing only the top 64 (with z-score) all stats so that they are on the same scale
 
 
 
@@ -84,13 +85,14 @@ teams_df$Seed <- scale(teams_df$Seed) # scaling seeds using z-score
 
 
 
-k = c(1, 0.75, 0.5, 0.25, 0.15, 0.1, 0.05)
-w = c(-0.7, 0.15, -0.1, 0.075, 0.05)
+#k = c(1, 0.75, 0.5, 0.25, 0.15, 0.1, 0.05)
+k = 1
+w = c(-0.25, 0.3, -0.2, 0.15, 0.1)
 
 Px <- function(ox, dx, oy, dy, r) 
 {
   i = 1:5
-  return((1 + exp(-1*k[r] * (sum(w[i]*((ox[i] - dy[i]) - (oy[i] - dx[i]))))))^(-1))
+  return((1 + exp(-1*k * (sum(w[i]*((ox[i] - dx[i]) - (oy[i] - dy[i]))))))^(-1))
 }
 
 
