@@ -90,15 +90,15 @@ teams_df$Seed <- scale(teams_df$Seed) # scaling seeds using z-score
 
 
 
-
-k = 0.1
+round = 1
+k = c(0.5, 0.25, 0.2, 0.15, 0.1)
 w = c(-0.5, 0.2, -0.15, 0.1, 0.05)
 #w = c(1, 0, 0, 0, 0)
 
 Px <- function(ox, dx, oy, dy) 
 {
   i = 1:5
-  return((1 + exp(-k * (sum(w[i]*((ox[i] - dy[i]) - (oy[i] - dx[i]))))))^(-1))
+  return((1 + exp(-1*k[round] * (sum(w[i]*((ox[i] - dy[i]) - (oy[i] - dx[i]))))))^(-1))
 }
 
 
@@ -171,6 +171,7 @@ simulate_tournament <- function()
     r_padded <- round_results
     length(r_padded) <- 64
     full_bracket <- cbind(full_bracket, r_padded)
+    round = round + 1
   }
   
   colnames(full_bracket) <- c("Round 1", "Round 2", "Round 3", "Round 4", "Round 5", "Round 6", "Round 7")
@@ -194,13 +195,15 @@ champ_count = tibble(Team = teams_df$Name, Count = 0)
 
 win_count = tibble(Team = teams_df$Name, Count = 0)
 
+round_df = tibble(Team = teams_df$Name, Seed = teams_df$Seed, Top32 = 0, Sweet16 = 0, Elite8 = 0, Final4 = 0, Finals = 0, Champion = 0)
+
 for (s in 1:sims) 
 {
   all_results[[s]] <- simulate_tournament()
   
-  winner = all_results[[s]][1,7]
+  #winner = all_results[[s]][1,7]
   #print(winner)
-  champ_count[champ_count$Team == winner, 2] = champ_count[champ_count$Team == winner, 2] + 1
+  #champ_count[champ_count$Team == winner, 2] = champ_count[champ_count$Team == winner, 2] + 1
   
   
   #for (r in 1:32)
@@ -215,13 +218,25 @@ for (s in 1:sims)
  # }
   
   
+  for (r in 1:32)
+  {
+    for (c in 2:7)
+    {
+      if (!is.na(all_results[[s]][r,c]))
+      {
+        round_df[round_df$Team == all_results[[s]][r,c], c + 1] <- round_df[round_df$Team == all_results[[s]][r,c], c + 1] + 1
+      }
+    }
+  }
+  
+  
 }
 
-champ_count[,2] = champ_count[,2]/sims
+#champ_count[,2] = champ_count[,2]/sims
 
-champ_count <- arrange(champ_count, Count)
+#champ_count <- arrange(champ_count, Count)
 
-print(champ_count, n = 100)
+#print(champ_count, n = 100)
 
 #win_count[,2] = win_count[,2]/sims
 
@@ -229,6 +244,10 @@ print(champ_count, n = 100)
 
 #print(win_count, n = 100)
 
-barplot(height = champ_count$Count)
+round_df[,3:8] <- round_df[,3:8]/sims
+
+print(round_df, n = 64)
+
+#barplot(height = champ_count$Count)
 
 
