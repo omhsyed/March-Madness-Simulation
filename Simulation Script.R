@@ -90,20 +90,18 @@ teams_df$Seed <- scale(teams_df$Seed) # scaling seeds using z-score
 
 
 
-round = 1
-k = c(0.5, 0.25, 0.2, 0.15, 0.1)
-w = c(-0.5, 0.2, -0.15, 0.1, 0.05)
-#w = c(1, 0, 0, 0, 0)
+k = c(1, 0.75, 0.5, 0.25, 0.15, 0.1, 0.05)
+w = c(-0.7, 0.15, -0.1, 0.075, 0.05)
 
-Px <- function(ox, dx, oy, dy) 
+Px <- function(ox, dx, oy, dy, r) 
 {
   i = 1:5
-  return((1 + exp(-1*k[round] * (sum(w[i]*((ox[i] - dy[i]) - (oy[i] - dx[i]))))))^(-1))
+  return((1 + exp(-1*k[r] * (sum(w[i]*((ox[i] - dy[i]) - (oy[i] - dx[i]))))))^(-1))
 }
 
 
 
-simulate_game <- function(teamX, teamY)
+simulate_game <- function(teamX, teamY, r)
 {
 
   x_seed = teams_df[teams_df$Name == teamX, 2][[1]]
@@ -123,7 +121,7 @@ simulate_game <- function(teamX, teamY)
     y_def_stats = c(y_def_stats, stats_df[stats_df$Team == teamY, s + 1][[1]])
   }
   
-  prob = Px(x_off_stats, x_def_stats, y_off_stats, y_def_stats)
+  prob = Px(x_off_stats, x_def_stats, y_off_stats, y_def_stats, r)
   
   rand = runif(n = 1, 0, 1)
   
@@ -141,14 +139,14 @@ simulate_game <- function(teamX, teamY)
 
 
 
-simulate_round <- function(v) 
+simulate_round <- function(v, r) 
 {
 
   round_vect <- c()
   
   for (i in seq(1, length(v), 2))
   {
-    game_winner <- simulate_game(v[i], v[i+1])
+    game_winner <- simulate_game(v[i], v[i+1], r)
     round_vect <- c(round_vect, game_winner)
   }
   
@@ -163,15 +161,16 @@ simulate_tournament <- function()
   
   round_results <- pull(teams_df, Name)
   full_bracket <- tibble(round_results)
-
+  
+  current_round <- 1
   
   while (length(round_results) > 1)
   {
-    round_results <- simulate_round(round_results)
+    round_results <- simulate_round(round_results, current_round)
     r_padded <- round_results
     length(r_padded) <- 64
     full_bracket <- cbind(full_bracket, r_padded)
-    round = round + 1
+    current_round <- current_round + 1
   }
   
   colnames(full_bracket) <- c("Round 1", "Round 2", "Round 3", "Round 4", "Round 5", "Round 6", "Round 7")
@@ -191,32 +190,16 @@ sims <- 1000
 
 all_results <- list()
 
-champ_count = tibble(Team = teams_df$Name, Count = 0)
+#champ_count = tibble(Team = teams_df$Name, Count = 0)
 
-win_count = tibble(Team = teams_df$Name, Count = 0)
+#win_count = tibble(Team = teams_df$Name, Count = 0)
 
-round_df = tibble(Team = teams_df$Name, Seed = teams_df$Seed, Top32 = 0, Sweet16 = 0, Elite8 = 0, Final4 = 0, Finals = 0, Champion = 0)
+round_df = tibble(Team = teams_df$Name, Top32 = 0, Sweet16 = 0, Elite8 = 0, Final4 = 0, Finals = 0, Champion = 0)
 
 for (s in 1:sims) 
 {
+  
   all_results[[s]] <- simulate_tournament()
-  
-  #winner = all_results[[s]][1,7]
-  #print(winner)
-  #champ_count[champ_count$Team == winner, 2] = champ_count[champ_count$Team == winner, 2] + 1
-  
-  
-  #for (r in 1:32)
-  #{
-    #for (c in 2:7) 
-    #{
-      #if (!is.na(all_results[[s]][r,c]))
-      #{
-       # win_count[win_count$Team == all_results[[s]][r,c], 2] = win_count[win_count$Team == all_results[[s]][r,c], 2] + 1
-     # }
-   # }
- # }
-  
   
   for (r in 1:32)
   {
@@ -224,7 +207,7 @@ for (s in 1:sims)
     {
       if (!is.na(all_results[[s]][r,c]))
       {
-        round_df[round_df$Team == all_results[[s]][r,c], c + 1] <- round_df[round_df$Team == all_results[[s]][r,c], c + 1] + 1
+        round_df[round_df$Team == all_results[[s]][r,c], c] <- round_df[round_df$Team == all_results[[s]][r,c], c] + 1
       }
     }
   }
@@ -232,21 +215,12 @@ for (s in 1:sims)
   
 }
 
-#champ_count[,2] = champ_count[,2]/sims
 
-#champ_count <- arrange(champ_count, Count)
+round_df[,2:7] <- round_df[,2:7]/sims
 
-#print(champ_count, n = 100)
+ordered_results = arrange(round_df, desc(Champion))
 
-#win_count[,2] = win_count[,2]/sims
-
-#win_count <- arrange(win_count, Count)
-
-#print(win_count, n = 100)
-
-round_df[,3:8] <- round_df[,3:8]/sims
-
-print(round_df, n = 64)
+print(ordered_results, n = 64)
 
 #barplot(height = champ_count$Count)
 
