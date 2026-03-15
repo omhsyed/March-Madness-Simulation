@@ -2,7 +2,7 @@
 
 #### This is the repository for an R script that obtains NCAA men's basketball team statistics and simulates a 64-team March Madness bracket. Progression is based on a probability formula dependent on match-specific differentials for seed and the "Four Factors".
 
-Using the rvest library, team information (qualifying teams and their seeds) are scraped from the NCAA live bracket page, and statistics for each team (the Four Factors: eFG%, TO%, ORB%, FTR) are scraped from barttorvik.com. These statistics are used in a custom probability formula that determines the likelihood of team X wins in a match between team X and team Y.
+Using the rvest library, team information (qualifying teams and their seeds) are scraped from the NCAA live bracket page, and statistics for each team (the Four Factors: eFG%, TO%, ORB%, FTR) are scraped from barttorvik.com. These statistics are used in a custom probability formula that determines the likelihood of team X winning in a match between team X and team Y.
 
 The probability formula is as follows:
 
