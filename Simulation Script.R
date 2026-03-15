@@ -44,14 +44,16 @@ stats_df <- stats_df[-1,]
 stats_df <- stats_df[-26,]
 stats_df <- stats_df[-51,]
 
-stats_df[, 6:24] <- lapply(stats_df[, 6:24], as.numeric)
+stats_df[, 6:24] <- lapply(stats_df[, 6:24], as.numeric) # making all the stats float/double values
 
 stats_df$Team <- as.character(stats_df$Team)
 stats_df$Team <- gsub("\u00A0", " ", stats_df$Team) # replacing weird space
 stats_df$Team <- trimws(sub("\\s*vs\\..*", "", stats_df$Team)) # getting rid of "vs..."
 stats_df$Team <- trimws(sub("\\s*\\(.*", "", stats_df$Team)) # getting rid of (... 
 
+#print(stats_df)
 
+stats_df[, 6:24] <- scale(stats_df[, 6:24]) # standardizing (with z-score) all stats so that they are on the same scale
 
 
 
@@ -68,8 +70,6 @@ teams <- c(teams, stats_df[1:64, 2][[1]])
 seeds <- ceiling(seeds/4)
 
 teams_df = tibble(Name = teams, Seed = seeds)
-#print(teams_df)
-
 
 # Gemini code to establish correct order (1v16, 2v15, etc.)
 
@@ -78,23 +78,21 @@ library(dplyr)
 # Define your desired seed matchup order
 seed_matchups <- c(1, 16, 2, 15, 3, 14, 4, 13, 5, 12, 6, 11, 7, 10, 8, 9)
 
-teams_df_ordered <- teams_df %>%
+teams_df <- teams_df %>%
   group_by(Seed) %>%
   mutate(region = row_number()) %>% # Assigns 1-4 to each repeating seed
   ungroup() %>%
   arrange(region, factor(Seed, levels = seed_matchups)) %>%
   select(-region) # Optional: drop the region column if you no longer need it
 
-#print(teams_df_ordered, n = 64)
 
-
-
+teams_df$Seed <- scale(teams_df$Seed) # scaling seeds using z-score
 
 
 
 
 k = 0.1
-w = c(0.5, 0.2, 0.15, 0.1, 0.05)
+w = c(-0.5, 0.2, -0.15, 0.1, 0.05)
 #w = c(1, 0, 0, 0, 0)
 
 Px <- function(ox, dx, oy, dy) 
@@ -109,11 +107,11 @@ simulate_game <- function(teamX, teamY)
 {
 
   x_seed = teams_df[teams_df$Name == teamX, 2][[1]]
-  x_off_stats = c(-1*x_seed)
+  x_off_stats = c(x_seed)
   x_def_stats = c(0)
   
   y_seed = teams_df[teams_df$Name == teamY, 2][[1]]
-  y_off_stats = c(-1*y_seed)
+  y_off_stats = c(y_seed)
   y_def_stats = c(0)
     
   for (s in seq(9, 15, 2))
@@ -163,7 +161,7 @@ simulate_round <- function(v)
 simulate_tournament <- function()
 {
   
-  round_results <- teams
+  round_results <- pull(teams_df, Name)
   full_bracket <- tibble(round_results)
 
   
@@ -232,6 +230,5 @@ print(champ_count, n = 100)
 #print(win_count, n = 100)
 
 barplot(height = champ_count$Count)
-
 
 
