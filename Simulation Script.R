@@ -30,8 +30,6 @@ teams = html_text(team_tags)
 
 # kenpom alternative (barttorvik) stats page
 
-library(rvest)
-
 url = "https://barttorvik.com/#"
 
 s = read_html_live(url)
@@ -40,9 +38,7 @@ stats_df = html_table(s)[[1]]
 
 colnames(stats_df) <- stats_df[1,]
 
-stats_df <- stats_df[-1,]
-stats_df <- stats_df[-26,]
-stats_df <- stats_df[-51,]
+stats_df <- stats_df[stats_df$Team != "Team", ] # removing all column headers that appear as rows 
 
 stats_df[, 6:24] <- lapply(stats_df[, 6:24], as.numeric) # making all the stats float/double values
 
@@ -72,8 +68,6 @@ seeds <- ceiling(seeds/4)
 teams_df = tibble(Name = teams, Seed = seeds)
 
 # Gemini code to establish correct order (1v16, 2v15, etc.)
-
-library(dplyr)
 
 # Define your desired seed matchup order
 seed_matchups <- c(1, 16, 2, 15, 3, 14, 4, 13, 5, 12, 6, 11, 7, 10, 8, 9)
