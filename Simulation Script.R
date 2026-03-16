@@ -1,7 +1,6 @@
 library(tidyverse)
 library(rvest)
 
-# WEB SCRAPING
 
 
 # Live NCAA 2026 bracket page
@@ -17,20 +16,18 @@ seeds = html_text(seed_tags)
 teams = html_text(team_tags)
 
 seeds <- as.numeric(seeds[seeds != ""])
-#teams <- teams[teams != ""] # skipping empty entries
+seeds <- seeds[1:64]
+teams <- teams[teams != ""] # skipping empty entries
+teams <- teams[1:64]
 
-teams <- teams[seq(-2, -268, -2)] # skipping empty even entries
-teams <- teams[c(-17:-30, -47:-66, -83:-96, -113:-126)] #skipping unfilled bracket entries; 2nd vector entry skips a bit more than 13 since it picks up the final 4 blank area
+#teams <- teams[seq(-2, -268, -2)] # skipping empty even entries
+#teams <- teams[c(-17:-30, -47:-66, -83:-96, -113:-126)] #skipping unfilled bracket entries; 2nd vector entry skips a bit more than 13 since it picks up the final 4 blank area
 
+scaled_seeds <- as.numeric(scale(seeds))
 
+teams_df_unscaled <- tibble(Name = teams, Seed = seeds)
 
-#scaled_seeds <- as.numeric(scale(seeds))
-
-#teams_df_unscaled <- tibble(Name = teams, Seed = seeds)
-
-#teams_df <- tibble(Name = teams, Seed = scaled_seeds)
-
-
+teams_df <- tibble(Name = teams, Seed = scaled_seeds)
 
 
 
@@ -52,9 +49,7 @@ stats_df$Team <- as.character(stats_df$Team)
 stats_df$Team <- gsub("\u00A0", " ", stats_df$Team) # replacing weird space
 stats_df$Team <- sub("   .*", "", stats_df$Team) # getting rid of the three spaces and the seed label that follows it
 
-stats_df[, 6:24] <- scale(stats_df[, 6:24]) # standardizing only the top 64 (with z-score) all stats so that they are on the same scale
-
-
+stats_df[, 6:24] <- scale(stats_df[, 6:24]) # standardizing (with z-score) all stats so that they are on the same scale
 
 
 
@@ -87,19 +82,18 @@ teams_df$Seed <- scale(teams_df$Seed) # scaling seeds using z-score
 
 
 
-#k = c(1, 0.75, 0.5, 0.25, 0.15, 0.1, 0.05)
 k = 1
 w = c(-0.25, 0.3, -0.2, 0.15, 0.1)
 
-Px <- function(ox, dx, oy, dy, r) 
+Px <- function(ox, dx, oy, dy) 
 {
   i = 1:5
-  return((1 + exp(-1*k * (sum(w[i]*((ox[i] - dx[i]) - (oy[i] - dy[i]))))))^(-1))
+  return((1 + exp(-k*(sum(w[i]*((ox[i] - dx[i]) - (oy[i] - dy[i]))))))^(-1))
 }
 
 
 
-simulate_game <- function(teamX, teamY, r)
+simulate_game <- function(teamX, teamY)
 {
 
   x_seed = teams_df[teams_df$Name == teamX, 2][[1]]
@@ -119,7 +113,7 @@ simulate_game <- function(teamX, teamY, r)
     y_def_stats = c(y_def_stats, stats_df[stats_df$Team == teamY, s + 1][[1]])
   }
   
-  prob = Px(x_off_stats, x_def_stats, y_off_stats, y_def_stats, r)
+  prob = Px(x_off_stats, x_def_stats, y_off_stats, y_def_stats)
   
   rand = runif(n = 1, 0, 1)
   
@@ -136,15 +130,14 @@ simulate_game <- function(teamX, teamY, r)
 
 
 
-
-simulate_round <- function(v, r) 
+simulate_round <- function(v) 
 {
 
   round_vect <- c()
   
   for (i in seq(1, length(v), 2))
   {
-    game_winner <- simulate_game(v[i], v[i+1], r)
+    game_winner <- simulate_game(v[i], v[i+1])
     round_vect <- c(round_vect, game_winner)
   }
   
@@ -160,15 +153,12 @@ simulate_tournament <- function()
   round_results <- pull(teams_df, Name)
   full_bracket <- tibble(round_results)
   
-  current_round <- 1
-  
   while (length(round_results) > 1)
   {
-    round_results <- simulate_round(round_results, current_round)
+    round_results <- simulate_round(round_results)
     r_padded <- round_results
     length(r_padded) <- 64
     full_bracket <- cbind(full_bracket, r_padded)
-    current_round <- current_round + 1
   }
   
   colnames(full_bracket) <- c("Round 1", "Round 2", "Round 3", "Round 4", "Round 5", "Round 6", "Round 7")
@@ -178,13 +168,11 @@ simulate_tournament <- function()
 
 
 
-
 sims <- 100
 
 all_results <- list()
 
 round_df = tibble(Team = teams_df$Name, Top32 = 0, Sweet16 = 0, Elite8 = 0, Final4 = 0, Finals = 0, Champion = 0)
-
 
 for (s in 1:sims) 
 {
@@ -204,6 +192,7 @@ for (s in 1:sims)
   
   
 }
+
 
 
 round_df[,2:7] <- round_df[,2:7]/sims
