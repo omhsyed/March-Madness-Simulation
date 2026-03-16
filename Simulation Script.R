@@ -58,7 +58,7 @@ stats_df[, 6:24] <- scale(stats_df[, 6:24]) # standardizing (with z-score) all s
 seeds <- numeric(0)
 teams <- character(0)
 
-seeds <- c(seeds, as.numeric(stats_df[1:64, 1][[1]]))
+seeds <- 1:64
 teams <- c(teams, stats_df[1:64, 2][[1]])
 
 seeds <- ceiling(seeds/4)
@@ -168,7 +168,7 @@ simulate_tournament <- function()
 
 
 
-sims <- 100
+sims <- 5000
 
 all_results <- list()
 
@@ -206,7 +206,7 @@ print(arrange(round_df[,c(1,3)], desc(Sweet16)))
 print(arrange(round_df[,c(1,4)], desc(Elite8)))
 print(arrange(round_df[,c(1,5)], desc(Final4)))
 print(arrange(round_df[,c(1,6)], desc(Finals)))
-print(round_df[,c(1,7)])
+print(arrange(round_df[,c(1,7)], desc(Champion)))
 
 #barplot(height = champ_count$Count)
 
