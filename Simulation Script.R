@@ -17,13 +17,18 @@ seeds = html_text(seed_tags)
 teams = html_text(team_tags)
 
 seeds <- as.numeric(seeds[seeds != ""])
-teams <- teams[teams != ""] # skipping empty entries
+#teams <- teams[teams != ""] # skipping empty entries
 
-scaled_seeds <- as.numeric(scale(seeds))
+teams <- teams[seq(-2, -268, -2)] # skipping empty even entries
+teams <- teams[c(-17:-30, -47:-66, -83:-96, -113:-126)] #skipping unfilled bracket entries; 2nd vector entry skips a bit more than 13 since it picks up the final 4 blank area
 
-teams_df_unscaled <- tibble(Name = teams, Seed = seeds)
 
-teams_df <- tibble(Name = teams, Seed = scaled_seeds)
+
+#scaled_seeds <- as.numeric(scale(seeds))
+
+#teams_df_unscaled <- tibble(Name = teams, Seed = seeds)
+
+#teams_df <- tibble(Name = teams, Seed = scaled_seeds)
 
 
 
@@ -31,7 +36,7 @@ teams_df <- tibble(Name = teams, Seed = scaled_seeds)
 
 # kenpom alternative (barttorvik) stats page
 
-url = "https://barttorvik.com/#"
+url = "https://barttorvik.com/?year=2026&sort=&hteam=&t2value=&conlimit=NCAA&state=All&begin=20251101&end=20260501&top=0&revquad=0&quad=5&venue=All&type=All&mingames=0#"
 
 s = read_html_live(url)
 
@@ -45,12 +50,9 @@ stats_df[, 6:24] <- lapply(stats_df[, 6:24], as.numeric) # making all the stats 
 
 stats_df$Team <- as.character(stats_df$Team)
 stats_df$Team <- gsub("\u00A0", " ", stats_df$Team) # replacing weird space
-stats_df$Team <- trimws(sub("\\s*vs\\..*", "", stats_df$Team)) # getting rid of "vs..."
-stats_df$Team <- trimws(sub("\\s*\\(.*", "", stats_df$Team)) # getting rid of (... 
+stats_df$Team <- sub("   .*", "", stats_df$Team) # getting rid of the three spaces and the seed label that follows it
 
-#print(stats_df)
-
-stats_df[1:64, 6:24] <- scale(stats_df[1:64, 6:24]) # standardizing only the top 64 (with z-score) all stats so that they are on the same scale
+stats_df[, 6:24] <- scale(stats_df[, 6:24]) # standardizing only the top 64 (with z-score) all stats so that they are on the same scale
 
 
 
@@ -175,22 +177,14 @@ simulate_tournament <- function()
 }
 
 
-simulate_tournament()
 
 
-
-
-
-
-sims <- 1000
+sims <- 100
 
 all_results <- list()
 
-#champ_count = tibble(Team = teams_df$Name, Count = 0)
-
-#win_count = tibble(Team = teams_df$Name, Count = 0)
-
 round_df = tibble(Team = teams_df$Name, Top32 = 0, Sweet16 = 0, Elite8 = 0, Final4 = 0, Finals = 0, Champion = 0)
+
 
 for (s in 1:sims) 
 {
@@ -214,9 +208,16 @@ for (s in 1:sims)
 
 round_df[,2:7] <- round_df[,2:7]/sims
 
-ordered_results = arrange(round_df, desc(Champion))
+#ordered_results = arrange(round_df, desc(Champion))
 
-print(ordered_results, n = 64)
+#print(ordered_results, n = 64)
+
+print(arrange(round_df[,1:2], desc(Top32)))
+print(arrange(round_df[,c(1,3)], desc(Sweet16)))
+print(arrange(round_df[,c(1,4)], desc(Elite8)))
+print(arrange(round_df[,c(1,5)], desc(Final4)))
+print(arrange(round_df[,c(1,6)], desc(Finals)))
+print(round_df[,c(1,7)])
 
 #barplot(height = champ_count$Count)
 
