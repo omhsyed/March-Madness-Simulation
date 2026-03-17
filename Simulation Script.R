@@ -77,12 +77,12 @@ teams_df <- teams_df %>%
   arrange(region, factor(Seed, levels = seed_matchups)) %>%
   select(-region) # Optional: drop the region column if you no longer need it
 
-
+teams_df_unscaled <- teams_df
 teams_df$Seed <- scale(teams_df$Seed) # scaling seeds using z-score
 
 
 
-k = 1
+k = 0.5
 w = c(-0.25, 0.3, -0.2, 0.15, 0.1)
 
 Px <- function(ox, dx, oy, dy) 
@@ -168,11 +168,11 @@ simulate_tournament <- function()
 
 
 
-sims <- 5000
+sims <- 100
 
 all_results <- list()
 
-round_df = tibble(Team = teams_df$Name, Top32 = 0, Sweet16 = 0, Elite8 = 0, Final4 = 0, Finals = 0, Champion = 0)
+round_df = tibble(Team = teams_df$Name, Seed = teams_df_unscaled$Seed, Top32 = 0, Sweet16 = 0, Elite8 = 0, Final4 = 0, Finals = 0, Champion = 0)
 
 for (s in 1:sims) 
 {
@@ -185,7 +185,7 @@ for (s in 1:sims)
     {
       if (!is.na(all_results[[s]][r,c]))
       {
-        round_df[round_df$Team == all_results[[s]][r,c], c] <- round_df[round_df$Team == all_results[[s]][r,c], c] + 1
+        round_df[round_df$Team == all_results[[s]][r,c], c + 1] <- round_df[round_df$Team == all_results[[s]][r,c], c + 1] + 1
       }
     }
   }
@@ -195,18 +195,18 @@ for (s in 1:sims)
 
 
 
-round_df[,2:7] <- round_df[,2:7]/sims
+round_df[,3:8] <- round_df[,3:8]/sims
 
-#ordered_results = arrange(round_df, desc(Champion))
+ordered_results = arrange(round_df, desc(Champion))
 
 #print(ordered_results, n = 64)
 
-print(arrange(round_df[,1:2], desc(Top32)))
-print(arrange(round_df[,c(1,3)], desc(Sweet16)))
-print(arrange(round_df[,c(1,4)], desc(Elite8)))
-print(arrange(round_df[,c(1,5)], desc(Final4)))
-print(arrange(round_df[,c(1,6)], desc(Finals)))
-print(arrange(round_df[,c(1,7)], desc(Champion)))
+print(arrange(round_df[,c(1,2,3)], desc(Top32)), n = 100)
+print(arrange(round_df[,c(1,2,4)], desc(Sweet16)), n = 100)
+print(arrange(round_df[,c(1,2,5)], desc(Elite8)), n = 100)
+print(arrange(round_df[,c(1,2,6)], desc(Final4)), n = 100)
+print(arrange(round_df[,c(1,2,7)], desc(Finals)), n = 100)
+print(arrange(round_df[,c(1,2,8)], desc(Champion)), n = 100)
 
 #barplot(height = champ_count$Count)
 
