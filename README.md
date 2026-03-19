@@ -1,6 +1,6 @@
 # March Madness 2026 Monte Carlo Simulation
 
-#### This is the repository for an R script that obtains NCAA men's basketball team statistics and simulates a 64-team March Madness bracket. Progression is based on a probability formula dependent on match-specific differentials for seed and the "Four Factors".
+#### This is the repository for an R script that automatically obtains NCAA men's basketball team statistics and simulates many 64-team March Madness brackets to find the optimal pick. Progression is based on a probability formula dependent on match-specific differentials for seed and the "Four Factors".
 
 Using the rvest library, team information (qualifying teams and their seeds) is scraped from the NCAA live bracket page, and statistics for each team (the Four Factors: eFG%, TO%, ORB%, FTR) are scraped from barttorvik.com. These statistics are used in a custom probability formula that determines the likelihood of team X winning in a match between team X and team Y.
 
