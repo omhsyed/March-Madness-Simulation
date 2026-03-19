@@ -27,31 +27,21 @@ teams[teams == "Long Island"] <- "LIU"
 teams[teams == "Queens (N.C.)"] <- "Queens"
 teams[teams == "Miami (FL)"] <- "Miami FL"
 teams[teams == "McNeese"] <- "McNeese St."
+teams[teams == "Miami (Ohio)"] <- "Miami OH"
 
-
-
-#teams <- teams[seq(-2, -268, -2)] # skipping empty even entries
-#teams <- teams[c(-17:-30, -47:-66, -83:-96, -113:-126)] #skipping unfilled bracket entries; 2nd vector entry skips a bit more than 13 since it picks up the final 4 blank area
 
 scaled_seeds <- as.numeric(scale(seeds))
 
 teams_df_unscaled <- tibble(Name = teams, Seed = seeds)
 
-
-
-
-# TEST (adding in blank teams for testing)
-
-teams_df_unscaled <- add_row(teams_df_unscaled, teams_df_unscaled[68,], .after = 33) # putting Lehigh after Florida
-
-teams_df_unscaled <- add_row(teams_df_unscaled, teams_df_unscaled[71,], .after = 57) # putting SMU after Tennessee
-
 teams_df_unscaled <- teams_df_unscaled[1:64,]
 
+# Reordering blocks; swapping 2 and 3 to match correct bracket order
+block2 <- teams_df_unscaled[17:32,]
+teams_df_unscaled[17:32,] <- teams_df_unscaled[33:48,]
+teams_df_unscaled[33:48,] <- block2
 
 teams_df <- tibble(Name = teams_df_unscaled$Name, Seed = as.numeric(scale(teams_df_unscaled$Seed))) # scale everything at the end
-
-
 
 
 
@@ -77,37 +67,9 @@ stats_df[, 6:24] <- scale(stats_df[, 6:24]) # standardizing (with z-score) all s
 
 
 
-# test values for seed and teams until bracket is finalized
-# 
-# seeds <- numeric(0)
-# teams <- character(0)
-# 
-# seeds <- 1:64
-# teams <- c(teams, stats_df[1:64, 2][[1]])
-# 
-# seeds <- ceiling(seeds/4)
-# 
-# teams_df = tibble(Name = teams, Seed = seeds)
-# 
-# # Gemini code to establish correct order (1v16, 2v15, etc.)
-# 
-# # Define your desired seed matchup order
-# seed_matchups <- c(1, 16, 2, 15, 3, 14, 4, 13, 5, 12, 6, 11, 7, 10, 8, 9)
-# 
-# teams_df <- teams_df %>%
-#   group_by(Seed) %>%
-#   mutate(region = row_number()) %>% # Assigns 1-4 to each repeating seed
-#   ungroup() %>%
-#   arrange(region, factor(Seed, levels = seed_matchups)) %>%
-#   select(-region) # Optional: drop the region column if you no longer need it
-# 
-# teams_df_unscaled <- teams_df
-# teams_df$Seed <- scale(teams_df$Seed) # scaling seeds using z-score
 
-
-
-k = 0.5
-w = c(-0, 0.4, -0.25, 0.2, 0.15)
+k = 1
+w = c(-0.25, 0.3, -0.2, 0.15, 0.1)
 
 Px <- function(ox, dx, oy, dy) 
 {
@@ -194,7 +156,7 @@ simulate_tournament <- function()
 
 
 
-sims <- 500
+sims <- 50000
 
 all_results <- list()
 
@@ -230,8 +192,6 @@ print(round_df, n = 100)
 # print(arrange(round_df[,c(1,2,6)], desc(Final4)), n = 100)
 # print(arrange(round_df[,c(1,2,7)], desc(Finals)), n = 100)
 # print(arrange(round_df[,c(1,2,8)], desc(Champion)), n = 100)
-
-
 
 
 
