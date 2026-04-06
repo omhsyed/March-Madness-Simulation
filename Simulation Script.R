@@ -1,6 +1,7 @@
 library(tidyverse)
 library(rvest)
 
+print("Retrieving data...")
 
 # Live NCAA 2026 bracket page
 
@@ -8,17 +9,16 @@ bracket_url = "https://www.ncaa.com/march-madness-live/bracket"
 
 sesh = read_html_live(bracket_url)
 
-seed_tags = html_elements(sesh, "span.overline.color_lvl_-5")
-team_tags = html_elements(sesh, "p.body.body_2.color_lvl_-5")
+seed_tags = html_elements(sesh, ".round-1 .overline.color_lvl_-5")
+team_tags = html_elements(sesh, ".round-1 .body.body_2.color_lvl_-5")
 
 seeds = html_text(seed_tags)
 teams = html_text(team_tags)
 
 seeds <- as.numeric(seeds[seeds != ""])
-#seeds <- seeds[1:64]
+teams <- teams[is.na(as.numeric(teams))] # removing faulty entries of team score in first round match (problem occurs after rounds begin)
 teams <- teams[teams != ""] # skipping empty entries
 teams <- teams[is.na(suppressWarnings(as.numeric(teams)))] # skipping faulty entries created from the score of a match (first four)
-#teams <- teams[1:64]
 
 
 # fixing name mismatches between NCAA page and Bart Torvik
@@ -154,9 +154,9 @@ simulate_tournament <- function()
 
 }
 
+print("Simulating brackets...")
 
-
-sims <- 50000
+sims <- 50
 
 all_results <- list()
 
@@ -197,7 +197,7 @@ print(round_df, n = 100)
 
 # Scoring every simulation bracket against the rest, and returning the one with the highest average score
 
-round_weights <- c(10, 20, 40, 80, 160, 320)
+round_weights <- c(1, 2, 4, 8, 16, 32)
 
 calculate_ev <- function(bracket_df, prob_df) {
   
@@ -216,12 +216,60 @@ calculate_ev <- function(bracket_df, prob_df) {
   
 }
 
-sim_scores <- sapply(all_results, calculate_ev, prob_df = round_df)
+#sim_scores <- sapply(all_results, calculate_ev, prob_df = round_df)
 
-best_index <- which.max(sim_scores)
+#best_index <- which.max(sim_scores)
 
-best_bracket <- all_results[[best_index]]
+#best_bracket <- all_results[[best_index]]
 
-print(best_index)
-print(sim_scores[best_index])
-print(best_bracket)
+#print(best_index)
+#print(sim_scores[best_index])
+#print(best_bracket)
+
+print("Finding best bracket...")
+
+scores = c()
+
+for (i in 1:length(all_results))
+{
+  bracket_score = 0
+  
+  for (j in 1:length(all_results))
+  {
+    for (c in 1:6)
+    {
+      for (r in 1:(length(na.omit(all_results[[i]][[c]])) / 2))
+      {
+        if (r != 1) {r = r*2 - 1}
+        seed1 = teams_df[teams_df$Name == all_results[[i]][[c]][r], 2]
+        seed2 = teams_df[teams_df$Name == all_results[[i]][[c]][r + 1], 2] 
+        if (r != 1) {r = (r+1)/2}
+        
+        if (all_results[[i]][[c + 1]][r] == all_results[[j]][[c + 1]][r])
+        {
+          bracket_score = bracket_score + round_weights[c]
+          
+          current_seed = teams_df[teams_df$Name == all_results[[i]][[c + 1]][r], 2]
+          
+          if (current_seed >= seed1 && current_seed >= seed2)
+          {
+            better_seed = 0
+            if (current_seed == seed1) {better_seed = seed2} else {better_seed = seed1}
+            
+            bracket_score = bracket_score + (current_seed - better_seed)
+          }
+        }
+      
+        
+      }
+    }
+  }
+  
+  bracket_score = bracket_score/length(all_results)
+  scores = c(scores, bracket_score)
+}
+
+best_index = which.max(scores)
+best_bracket = all_results[[best_index]]
+
+print("Complete!")
