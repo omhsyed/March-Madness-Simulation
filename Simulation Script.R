@@ -156,7 +156,7 @@ simulate_tournament <- function()
 
 print("Simulating brackets...")
 
-sims <- 50
+sims <- 100
 
 all_results <- list()
 
@@ -185,7 +185,7 @@ for (s in 1:sims)
 
 round_df[,3:8] <- round_df[,3:8]/sims
 
-print(round_df, n = 100)
+#print(round_df, n = 100)
 # print(arrange(round_df[,c(1,2,3)], desc(Top32)), n = 100)
 # print(arrange(round_df[,c(1,2,4)], desc(Sweet16)), n = 100)
 # print(arrange(round_df[,c(1,2,5)], desc(Elite8)), n = 100)
@@ -199,77 +199,100 @@ print(round_df, n = 100)
 
 round_weights <- c(1, 2, 4, 8, 16, 32)
 
-calculate_ev <- function(bracket_df, prob_df) {
-  
-  ev_score <- 0
-  
-  for (i in 1:6) {
 
-    teams_in_round <- na.omit(bracket_df[[i + 1]]) 
-    
-    round_probs <- prob_df[prob_df$Team %in% teams_in_round, i + 2]
-    
-    ev_score <- ev_score + (sum(round_probs) * round_weights[i])
-  }
-  
-  return(ev_score)
-  
-}
-
-#sim_scores <- sapply(all_results, calculate_ev, prob_df = round_df)
-
-#best_index <- which.max(sim_scores)
-
-#best_bracket <- all_results[[best_index]]
-
-#print(best_index)
-#print(sim_scores[best_index])
-#print(best_bracket)
 
 print("Finding best bracket...")
 
-scores = c()
-
-for (i in 1:length(all_results))
-{
+calculate_score <- function(bracket_df, prob_df) {
+  
   bracket_score = 0
   
-  for (j in 1:length(all_results))
+  for (c in 1:6) 
   {
-    for (c in 1:6)
+    
+    for (r in 1:(length(na.omit(bracket_df[[c]])) / 2))
     {
-      for (r in 1:(length(na.omit(all_results[[i]][[c]])) / 2))
-      {
-        if (r != 1) {r = r*2 - 1}
-        seed1 = teams_df[teams_df$Name == all_results[[i]][[c]][r], 2]
-        seed2 = teams_df[teams_df$Name == all_results[[i]][[c]][r + 1], 2] 
-        if (r != 1) {r = (r+1)/2}
-        
-        if (all_results[[i]][[c + 1]][r] == all_results[[j]][[c + 1]][r])
-        {
-          bracket_score = bracket_score + round_weights[c]
-          
-          current_seed = teams_df[teams_df$Name == all_results[[i]][[c + 1]][r], 2]
-          
-          if (current_seed >= seed1 && current_seed >= seed2)
-          {
-            better_seed = 0
-            if (current_seed == seed1) {better_seed = seed2} else {better_seed = seed1}
-            
-            bracket_score = bracket_score + (current_seed - better_seed)
-          }
-        }
+      if (r != 1) {r = r*2 - 1}
+      seed1 = teams_df[teams_df$Name == bracket_df[[c]][r], 2]
+      seed2 = teams_df[teams_df$Name == bracket_df[[c]][r + 1], 2] 
+      if (r != 1) {r = (r+1)/2}
+    
+      bracket_score = bracket_score + round_weights[c] * prob_df[prob_df$Team == bracket_df[[c + 1]][r], c + 2]
       
-        
+      better_seed = min(seed1, seed2)
+      
+      current_seed = teams_df[teams_df$Name == bracket_df[[c + 1]][r], 2]
+      
+      if (current_seed > better_seed)
+      {
+        bracket_score = bracket_score + (current_seed - better_seed) * prob_df[prob_df$Team == bracket_df[[c + 1]][r], c + 2]
       }
+      
+
     }
+  
   }
   
-  bracket_score = bracket_score/length(all_results)
-  scores = c(scores, bracket_score)
+  return(bracket_score)
+  
 }
 
-best_index = which.max(scores)
-best_bracket = all_results[[best_index]]
+scores <- sapply(all_results, calculate_score, prob_df = round_df)
+
+best_index <- which.max(scores)
+
+best_bracket <- all_results[[best_index]]
 
 print("Complete!")
+
+print(best_bracket)
+
+
+# 
+# scores = c()
+# 
+# for (i in 1:length(all_results))
+# {
+#   bracket_score = 0
+#   
+#   for (j in 1:length(all_results))
+#   {
+#     for (c in 1:6)
+#     {
+#       for (r in 1:(length(na.omit(all_results[[i]][[c]])) / 2))
+#       {
+#         if (r != 1) {r = r*2 - 1}
+#         seed1 = teams_df[teams_df$Name == all_results[[i]][[c]][r], 2]
+#         seed2 = teams_df[teams_df$Name == all_results[[i]][[c]][r + 1], 2] 
+#         if (r != 1) {r = (r+1)/2}
+#         
+#         if (all_results[[i]][[c + 1]][r] == all_results[[j]][[c + 1]][r])
+#         {
+#           bracket_score = bracket_score + round_weights[c]
+#           
+#           current_seed = teams_df[teams_df$Name == all_results[[i]][[c + 1]][r], 2]
+#           
+#           if (current_seed >= seed1 && current_seed >= seed2)
+#           {
+#             better_seed = 0
+#             if (current_seed == seed1) {better_seed = seed2} else {better_seed = seed1}
+#             
+#             bracket_score = bracket_score + (current_seed - better_seed)
+#           }
+#         }
+#       
+#         
+#       }
+#     }
+#   }
+#   
+#   bracket_score = bracket_score/length(all_results)
+#   scores = c(scores, bracket_score)
+# }
+# 
+# best_index = which.max(scores)
+# best_bracket = all_results[[best_index]]
+# 
+# print("Complete!")
+# 
+# print(best_bracket)
